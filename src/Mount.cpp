@@ -1844,10 +1844,10 @@ void Mount::loop() {
   #endif
 
   #if (DEBUG_LEVEL & DEBUG_MOUNT) && (DEBUG_LEVEL & DEBUG_VERBOSE)
-  unsigned long now = millis();
-  if (now - _lastMountPrint > 2000) {
+  const unsigned long now1 = millis();
+  if (now1 - _lastMountPrint > 2000) {
     LOGV2(DEBUG_MOUNT, "%s",getStatusString().c_str());
-    _lastMountPrint = now;
+    _lastMountPrint = now1;
   }
   #endif
 
@@ -1879,9 +1879,9 @@ void Mount::loop() {
   #endif
   
   if (isGuiding()) {
-    unsigned long now = millis();
-    bool stopRaGuiding = now > _guideRaEndTime;
-    bool stopDecGuiding = now > _guideDecEndTime;
+    const unsigned long now2 = millis();
+    bool stopRaGuiding = now2 > _guideRaEndTime;
+    bool stopDecGuiding = now2 > _guideDecEndTime;
     if (stopRaGuiding || stopDecGuiding) {
       stopGuiding(stopRaGuiding,stopDecGuiding);
       #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART

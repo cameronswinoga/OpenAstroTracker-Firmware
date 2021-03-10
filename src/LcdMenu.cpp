@@ -138,7 +138,8 @@ void LcdMenu::setBacklightBrightness(int level, bool persist)
   #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD && defined(LCD_BRIGHTNESS_PIN)
     // Not supported on ESP32 due to lack of built-in analogWrite()
     // TODO: Verify that this works correctly on ATmega (reports of crashes)
-    // analogWrite(LCD_BRIGHTNESS_PIN, _brightness);
+    analogWrite(LCD_BRIGHTNESS_PIN, _brightness);
+    delay(100);
   #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
     // Nothing to do?
   #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306

@@ -352,7 +352,9 @@
 #endif  // DISPLAY_TYPE
 
 // Enable Meade protocol communication over serial
+#if !defined(SUPPORT_SERIAL_CONTROL)
 #define SUPPORT_SERIAL_CONTROL 1
+#endif
 
 // This is set to 1 for boards that do not support interrupt timers
 #define RUN_STEPPERS_IN_MAIN_LOOP 0

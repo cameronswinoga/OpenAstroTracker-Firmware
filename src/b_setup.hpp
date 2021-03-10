@@ -2,6 +2,12 @@
 
 #pragma once
 
+#if defined(__PLATFORMIO_BUILD_DEBUG__)
+PUSH_NO_WARNINGS
+#include "avr8-stub.h"
+POP_NO_WARNINGS
+#endif
+
 #include "InterruptCallback.hpp"
 
 #include "Utility.hpp"
@@ -87,6 +93,9 @@ void stepperControlTimerCallback(void* payload) {
 /////////////////////////////////
 void setup() {
 
+#if defined(__PLATFORMIO_BUILD_DEBUG__)
+    debug_init();
+#endif
   #if USE_GPS == 1
   GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
   #endif
@@ -204,7 +213,9 @@ void setup() {
   #endif
 // end microstepping -------------------
 
+#if !defined(__PLATFORMIO_BUILD_DEBUG__)
   Serial.begin(SERIAL_BAUDRATE);
+#endif
 
   #if (BLUETOOTH_ENABLED == 1)
   BLUETOOTH_SERIAL.begin(BLUETOOTH_DEVICE_NAME);
