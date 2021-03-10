@@ -39,8 +39,10 @@ void LcdMenu::startup()
 {
   LOGV1(DEBUG_INFO, F("LcdMenu:: startup"));
 
+  _lcdBadHw = false;  // Prove otherwise
   #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
     _lcd.begin(_cols, _rows);
+    _lcdBadHw = testIfLcdIsBad();
   #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
     _lcd.begin(_cols, _rows);
     _lcd.setBacklight(RED);
@@ -130,6 +132,63 @@ void LcdMenu::clear()
   _lcd.clear();
 }
 
+#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD && defined(LCD_BRIGHTNESS_PIN)
+
+/**
+ * @brief Check to see if there is a problem in the LCD backlight circuit
+ * @details The 'broken' designs connect D10 directly to the base of
+ * an NPN transistor. This will cause a short when D10 is set to HIGH as there
+ * is no current limiting resistor in the path between D10 to the base and the
+ * emitter to ground.
+ * Adapted from https://forum.arduino.cc/index.php?topic=96747.0
+ * @returns true if the LCD was manufactured incorrectly, false otherwise
+ */
+bool LcdMenu::testIfLcdIsBad()
+{
+    /*
+     * Set the pin to an input with pullup disabled, this should be safe on all shields.
+     * The reason for the digitalWrite() first is that only the newer Arduino
+     * cores disable the pullup when setting the pin to INPUT.
+     * On boards that have a pullup on the transistor base,
+     * this should cause the backlight to be on.
+     */
+    digitalWrite(LCD_BRIGHTNESS_PIN, LOW);
+    pinMode(LCD_BRIGHTNESS_PIN, INPUT);
+
+    /*
+     * Set the backlight pin to an output.
+     * since the pullup was turned off above by
+     * setting the pin to input mode,
+     * it should drive the pin LOW which should
+     * be safe given the known design flaw.
+     */
+    pinMode(LCD_BRIGHTNESS_PIN, OUTPUT);
+
+    /*
+     * Set the backlight pin to HIGH
+     * @NOTE: This is NOT a safe thing to do on the broken designs.
+     * The code will minimize the time this is done to prevent any potential damage.
+     */
+    digitalWrite(LCD_BRIGHTNESS_PIN, HIGH);
+
+    // Now see if a short is pulling down the HIGH output.
+    delayMicroseconds(5);  // Give some time for the signal to drop
+    const int val = digitalRead(LCD_BRIGHTNESS_PIN);
+
+    // Restore the pin to a safe state: Input with pullup turned off
+    digitalWrite(LCD_BRIGHTNESS_PIN, LOW);
+    pinMode(LCD_BRIGHTNESS_PIN, INPUT);
+
+    /*
+     * If the level read back is not HIGH then there is a problem because the
+     * pin is being driven HIGH by the AVR.
+     */
+    const bool lcdIsBad = (val != HIGH);
+    LOGV2(DEBUG_INFO, F("LCD: HW is bad: %s"), lcdIsBad ? "YES" : "NO");
+    return lcdIsBad;
+}
+#endif
+
 // Set the brightness of the backlight
 void LcdMenu::setBacklightBrightness(int level, bool persist)
 {
@@ -137,9 +196,18 @@ void LcdMenu::setBacklightBrightness(int level, bool persist)
 
   #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD && defined(LCD_BRIGHTNESS_PIN)
     // Not supported on ESP32 due to lack of built-in analogWrite()
-    // TODO: Verify that this works correctly on ATmega (reports of crashes)
-    analogWrite(LCD_BRIGHTNESS_PIN, _brightness);
-    delay(100);
+    if (_lcdBadHw) {
+      // On 'bad' hardware you can only turn off or on
+      if (_brightness > 0) {
+        pinMode(LCD_BRIGHTNESS_PIN, INPUT);
+      }
+      else {
+        pinMode(LCD_BRIGHTNESS_PIN, OUTPUT);
+      }
+    }
+    else {
+      analogWrite(LCD_BRIGHTNESS_PIN, _brightness);
+    }
   #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
     // Nothing to do?
   #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306

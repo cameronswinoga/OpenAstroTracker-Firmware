@@ -61,6 +61,8 @@ public:
   // Pass thru utility function
   void clear();
 
+  static bool testIfLcdIsBad();
+
   // Go to the next menu item from currently active one
   void setNextActive();
 
@@ -99,6 +101,7 @@ private:
   byte const _rows;
   byte const _maxItems;
   byte const _charHeightRows;   // Height of character in display native rows
+  bool _lcdBadHw;
 
   MenuItem** _menuItems;  // The first menu item (linked list)
   byte _numMenuItems;
